@@ -14,6 +14,7 @@ const routes = (app) => {
     app.use('/api/category', CategoryRouter);
     app.use('/api/comment', CommentRouter);
     app.use('/api/story', StoryRoute);
+    
 };
 
 module.exports = routes;

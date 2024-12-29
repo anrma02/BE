@@ -7,19 +7,19 @@ const createUser = async (req, res) => {
         const reg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/;
         const isCheckEmail = reg.test(email);
         if (!email || !password || !confirmPassword) {
-            return res.status(200).json({
+            return res.status(500).json({
                 status: 'ERR',
-                message: 'The input is required',
+                message: 'Sai thông tin đầu vào',
             });
         } else if (!isCheckEmail) {
             return res.status(200).json({
                 status: 'ERR',
-                message: 'The input is email',
+                message: 'Vui lòng nhập đúng định dạng email',
             });
         } else if (password !== confirmPassword) {
             return res.status(200).json({
                 status: 'ERR',
-                message: 'The password is equal confirmPassword',
+                message: 'Mật khẩu không khớp',
             });
         }
         const response = await UserService.createUser(req.body);
@@ -37,14 +37,14 @@ const loginUser = async (req, res) => {
         const reg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/;
         const isCheckEmail = reg.test(email);
         if (!email || !password) {
-            return res.status(200).json({
+            return res.status(500).json({
                 status: 'ERR',
-                message: 'The input is required',
+                message: 'Tên đăng nhập hoặc mật khẩu không đúng',
             });
         } else if (!isCheckEmail) {
             return res.status(200).json({
                 status: 'ERR',
-                message: 'The input is email',
+                message: 'Không đúng định dạng email',
             });
         }
         const response = await UserService.loginUser(req.body);
@@ -88,7 +88,7 @@ const deleteUser = async (req, res) => {
         if (!userId) {
             return res.status(200).json({
                 status: 'ERR',
-                message: 'The userId is required',
+                message: 'Không tìm thấy id',
             });
         }
         const response = await UserService.deleteUser(userId);

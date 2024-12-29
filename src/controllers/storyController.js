@@ -53,10 +53,10 @@ const createStory = async (req, res) => {
     }
 
     const userInputText = `
-        Tạo câu chuyện từ ${ageValue} tuổi, câu chuyện ${name}, và tất cả hình ảnh theo phong cách ${image}.
-        Nội dung câu chuyện về ${content} với ${type}. Hãy cung cấp 30 chương, kèm theo mô tả chi tiết cho hình ảnh tương ứng với từng chương,
-        và lời nhắc tạo hình ảnh cho bìa sách với tên câu chuyện. Tất cả yêu cầu cần ở định dạng JSON.`;
-
+        Tạo câu chuyện từ ${ageValue} tuổi, câu chuyện ${name},
+        Nội dung câu chuyện về ${content} với ${type}. Hãy cung cấp 40 chương, mỗi chương khoảng 100 từ . Tất cả yêu cầu cần ở định dạng JSON.
+    `;
+    //kèm theo mô tả chi tiết cho hình ảnh tương ứng với từng chương, và lời nhắc tạo hình ảnh cho bìa sách với tên câu chuyện.
     try {
         // Start a chat session with the AI model
         const chatSession = await model.startChat({
@@ -117,6 +117,16 @@ const createStory = async (req, res) => {
     }
 };
 
+const removeVietnameseTones = (str) => {
+    return str
+        .normalize('NFD') // Chuyển đổi thành dạng decomposed, các ký tự dấu sẽ tách khỏi ký tự gốc
+        .replace(/[\u0300-\u036f]/g, '') // Loại bỏ các dấu thanh (accents)
+        .replace(/đ/g, 'd') // Chuyển "đ" thành "d"
+        .replace(/Đ/g, 'D') // Chuyển "Đ" thành "D"
+        .replace(/[^a-zA-Z0-9\s]/g, '') // Loại bỏ các ký tự không phải chữ cái hoặc số
+        .toLowerCase(); // Chuyển tất cả về chữ thường
+};
+
 const getAllStories = async (req, res) => {
     try {
         // Lấy các tham số từ query
@@ -135,13 +145,16 @@ const getAllStories = async (req, res) => {
             ];
         }
 
-        const stories = await Story.find(filters).skip(skip).limit(limit);
+        const [stories, totalStories] = await Promise.all([
+            Story.find(filters).skip(skip).limit(limit),
+            Story.countDocuments(filters),
+        ]);
+
         if (stories.length === 0) {
-            return res.status(404).json({
+            return res.status(200).json({
                 message: 'Không tìm thấy truyện nào phù hợp với tìm kiếm!',
             });
         }
-        const totalStories = await Story.countDocuments(filters);
 
         res.status(200).json({
             message: 'Danh sách câu chuyện',
@@ -272,4 +285,27 @@ const updateStory = async (req, res) => {
     }
 };
 
-module.exports = { createStory, getAllStories, getStoryById, deleteStory, updateStory };
+const hotNews = async (req, res) => {
+    try {
+        // Lấy 5 câu chuyện mới nhất, sắp xếp theo createdAt giảm dần
+        const latestStories = await Story.find().sort({ createdAt: -1 }).limit(5);
+
+        // Kiểm tra nếu không có câu chuyện nào
+        if (latestStories.length === 0) {
+            return res.status(404).json({
+                message: 'Không có câu chuyện nào!',
+            });
+        }
+
+        // Trả về danh sách các câu chuyện mới nhất
+        res.status(200).json({
+            message: 'Danh sách 5 câu chuyện mới nhất',
+            stories: latestStories,
+        });
+    } catch (error) {
+        console.error('Error fetching latest stories:', error);
+        res.status(500).json({ error: 'Lỗi khi lấy danh sách câu chuyện mới nhất!' });
+    }
+};
+
+module.exports = { createStory, getAllStories, getStoryById, deleteStory, updateStory, hotNews };

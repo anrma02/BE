@@ -6,6 +6,7 @@ const {
     getStoryById,
     deleteStory,
     updateStory,
+    hotNews,
 } = require('../controllers/storyController');
 
 // POST: Tạo câu chuyện
@@ -22,5 +23,8 @@ router.delete('/stories/:id', deleteStory);
 
 // Cập nhật câu chuyện theo ID
 router.put('/stories/:id', updateStory);
+
+// lấy hot news
+router.get('/hotnews', hotNews);
 
 module.exports = router;

@@ -1,97 +1,46 @@
 const Order = require('../models/OrderModel');
-const Product = require('../models/ProductModel');
+const Story = require('../models/StoryRoutes');
 const EmailService = require('./EmailService');
 
+const createOrder = async (newOrder) => {
+    try {
+        // Tạo đối tượng đơn hàng mới từ dữ liệu đầu vào
+        const order = new Order({
+            orderItems: newOrder.orderItems || [],
+            shippingAddress: {
+                fullName: newOrder.fullName,
+                address: newOrder.address,
+                city: newOrder.city,
+                phone: newOrder.phone,
+                email: newOrder.email || '',
+            },
+            paymentMethod: newOrder.paymentMethod, // Phương thức thanh toán
+            deliveryMethod: newOrder.deliveryMethod, // Phương thức giao hàng
+            itemsPrice: newOrder.itemsPrice, // Tổng giá trị sản phẩm
+            shippingPrice: newOrder.shippingPrice, // Phí vận chuyển
+            totalPrice: newOrder.totalPrice, // Tổng giá trị đơn hàng
+            user: newOrder.user, // ID người dùng
+        });
 
-const createOrder = (newOrder) => {
-    return new Promise(async (resolve, reject) => {
-        const {
-            orderItems,
-            paymentMethod,
-            deliveryMethod,
-            itemsPrice,
-            shippingPrice,
-            totalPrice,
-            fullName,
-            address,
-            city,
-            phone,
-            user,
-            isPaid,
-            paidAt,
-            email,
-        } = newOrder;
-        try {
-            const promises = orderItems.map(async (order) => {
-                const storyData = await Story.findOneAndUpdate(
-                    {
-                        _id: order.story,  
-                        countInStock: { $gte: order.amount },  
-                    },
-                    {
-                        $inc: {
-                            countInStock: -order.amount,
-                            sold: +order.amount,
-                        },
-                    },
-                    { new: true },
-                );
-                if (storyData) {
-                    return {
-                        status: 'OK',
-                        message: 'SUCCESS',
-                    };
-                } else {
-                    return {
-                        status: 'OK',
-                        message: 'ERR',
-                        id: order.story, // Replace product with story
-                    };
-                }
-            });
-            const results = await Promise.all(promises);
-            const newData = results && results.filter((item) => item.id);
-            if (newData.length) {
-                const arrId = [];
-                newData.forEach((item) => {
-                    arrId.push(item.id);
-                });
-                resolve({
-                    status: 'ERR',
-                    message: `Story with id: ${arrId.join(',')} is out of stock`,
-                });
-            } else {
-                const createdOrder = await Order.create({
-                    orderItems,
-                    shippingAddress: {
-                        fullName,
-                        address,
-                        city,
-                        phone,
-                        email,
-                    },
-                    paymentMethod,
-                    deliveryMethod,
-                    itemsPrice,
-                    shippingPrice,
-                    totalPrice,
-                    user: user,
-                    isPaid,
-                    paidAt,
-                });
-                if (createdOrder) {
-                    resolve({
-                        status: 'OK',
-                        message: 'success',
-                    });
-                }
-            }
-        } catch (e) {
-            reject(e);
-        }
-    });
+        // Lưu đơn hàng vào cơ sở dữ liệu
+        const savedOrder = await order.save();
+
+        // Trả về phản hồi thành công
+        return {
+            status: 'OK',
+            message: 'Order created successfully',
+            data: savedOrder,
+        };
+    } catch (error) {
+        // Bắt lỗi trong quá trình xử lý
+        console.error('Error creating order:', error);
+        return {
+            status: 'ERR',
+            message: 'Failed to create order',
+            error: error.message,
+        };
+    }
 };
-
 const getAllOrderDetail = (id) => {
     return new Promise(async (resolve, reject) => {
         try {
